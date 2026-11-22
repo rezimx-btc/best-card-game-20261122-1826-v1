@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ember Court — Duel of the Last Flame</title>
+<style>
+  :root{
+    --gold:#e8a93c; --gold-dim:#9a6b1e; --ember:#ff5a1f; --ember-deep:#c22e00;
+    --tide:#3fb7ff; --gale:#7ee081; --stone:#b8b0a4; --ink:#f5ead6;
+    --panel:rgba(20,12,6,.82); --panel-line:rgba(232,169,60,.35);
+  }
+  *{box-sizing:border-box; margin:0; padding:0; -webkit-user-select:none; user-select:none;}
+  html,body{height:100%;}
+  body{
+    font-family:Georgia,'Times New Roman',serif; color:var(--ink); overflow:hidden;
+    background:
+      radial-gradient(1200px 500px at 50% -10%, rgba(255,90,31,.28), transparent 60%),
+      radial-gradient(900px 500px at 50% 115%, rgba(194,46,0,.35), transparent 60%),
+      linear-gradient(180deg,#1a0d05 0%, #241207 45%, #120806 100%);
+  }
+  body::before{ /* drifting cinders */
+    content:""; position:fixed; inset:0; pointer-events:none; opacity:.5;
+    background-image:
+      radial-gradient(2px 2px at 12% 88%, #ffb347, transparent),
+      radial-gradient(2px 2px at 34% 92%, #ff7a2f, transparent),
+      radial-gradient(1.5px 1.5px at 57% 85%, #ffd27a, transparent),
+      radial-gradient(2px 2px at 78% 90%, #ff5a1f, transparent),
+      radial-gradient(1.5px 1.5px at 91% 84%, #ffb347, transparent),
+      radial-gradient(2px 2px at 45% 95%, #ff8c42, transparent);
+    animation:cinders 9s ease-in-out infinite alternate;
+  }
+  @keyframes cinders{from{transform:translateY(0);opacity:.35}to{transform:translateY(-26px);opacity:.65}}
+  #table{position:relative; width:1280px; max-width:100vw; height:800px; max-height:100vh; margin:0 auto;
+    display:flex; flex-direction:column; align-items:center; padding:14px 20px 10px;}
+  header{width:100%; display:flex; justify-content:space-between; align-items:baseline;}
+  h1{font-size:30px; letter-spacing:2px; color:var(--gold); text-shadow:0 0 18px rgba(255,90,31,.55), 0 2px 0 #000;}
+  h1 small{display:block; font-size:13px; letter-spacing:4px; color:#c98f4e; font-style:italic;}
+  #roundBadge{font-size:18px; color:#ffd27a; border:1px solid var(--panel-line); border-radius:20px;
+    padding:5px 16px; background:var(--panel);}
+  .scores{display:flex; gap:18px; margin-top:10px;}
+  .score{width:300px; background:var(--panel); border:1px solid var(--panel-line); border-radius:12px;
+    padding:8px 16px; display:flex; justify-content:space-between; align-items:center;}
+  .score .name{font-size:17px;}
+  .score .name b{color:var(--gold);}
+  .score .embers{font-size:26px; color:#ffcf6e;}
+  .score .embers small{font-size:12px; color:#c9a06a;}
+  .score.leader{border-color:var(--ember); box-shadow:0 0 14px rgba(255,90,31,.35);}
+  .score .streak{font-size:12px; color:#ffb347;}
+  #aiHand,#playerHand{display:flex; justify-content:center; min-height:118px; align-items:center;}
+  #aiHand{margin-top:8px;}
+  .card{
+    width:78px; height:112px; border-radius:10px; margin:0 4px; position:relative;
+    background:linear-gradient(160deg,#fff8ea,#f0dfbc 60%,#e2c98f);
+    color:#241407; border:2px solid #8a6a2f; box-shadow:0 4px 10px rgba(0,0,0,.55);
+    cursor:default; transition:transform .18s ease, box-shadow .18s ease;
+    font-family:Georgia,serif;
+  }
+  .card .rank{position:absolute; top:6px; left:8px; font-size:26px; font-weight:bold; line-height:1;}
+  .card .suit{position:absolute; top:34px; left:0; right:0; text-align:center; font-size:34px; line-height:1;}
+  .card .corner{position:absolute; top:6px; right:8px; font-size:15px;}
+  .card .suitname{position:absolute; bottom:8px; left:0; right:0; text-align:center; font-size:10px;
+    letter-spacing:1px; text-transform:uppercase; color:#6b4a1c;}
+  .card.Ember{color:#c22e00;} .card.Tide{color:#0b5fa5;} .card.Gale{color:#1d7a2e;} .card.Stone{color:#5d5347;}
+  .card.back{
+    background:repeating-linear-gradient(45deg,#7a1e00 0 8px,#3d0f00 8px 16px);
+    border-color:#e8a93c; color:#ffb347;
+  }
+  .card.back .suit{font-size:40px; color:#ffb347; text-shadow:0 0 10px #ff5a1f;}
+  #playerHand .card{cursor:pointer;}
+  #playerHand .card:hover{transform:translateY(-12px); box-shadow:0 10px 18px rgba(0,0,0,.6), 0 0 0 2px var(--gold);}
+  #playerHand .card.selected{transform:translateY(-16px); box-shadow:0 12px 20px rgba(0,0,0,.65), 0 0 0 3px var(--ember);}
+  #playerHand .card.disabled{opacity:.45; cursor:not-allowed;}
+  #playerHand .card.disabled:hover{transform:none; box-shadow:0 4px 10px rgba(0,0,0,.55);}
+  #trickArea{
+    flex:1; width:100%; display:flex; align-items:center; justify-content:center; gap:90px;
+    position:relative; margin:6px 0;
+  }
+  #trickArea::before{content:""; position:absolute; left:50%; top:8%; bottom:8%; width:1px;
+    background:linear-gradient(180deg,transparent,var(--panel-line),transparent);}
+  .trickSlot{width:150px; text-align:center;}
+  .trickSlot .who{font-size:14px; letter-spacing:2px; color:#c9a06a; margin-bottom:6px; text-transform:uppercase;}
+  .trickSlot .card{margin:0 auto; animation:deal .35s ease;}
+  .trickSlot .card.winner{box-shadow:0 0 0 3px var(--gold), 0 0 26px rgba(232,169,60,.8);}
+  @keyframes deal{from{transform:translateY(-30px) scale(.85); opacity:0}to{transform:none; opacity:1}}
+  .trickSlot .placeholder{width:78px; height:112px; margin:0 auto; border:2px dashed rgba(232,169,60,.35);
+    border-radius:10px; display:flex; align-items:center; justify-content:center; color:#8a6a2f; font-size:12px;}
+  #centerMsg{text-align:center; font-size:17px; min-height:26px; color:#ffd27a;
+    text-shadow:0 2px 6px #000; margin:2px 0 4px;}
+  #centerMsg .big{font-size:22px; color:var(--gold);}
+  #bottomBar{width:100%; display:flex; gap:16px; align-items:stretch;}
+  #log{flex:1; background:var(--panel); border:1px solid var(--panel-line); border-radius:10px;
+    padding:8px 12px; height:86px; overflow:hidden; font-size:13.5px; line-height:1.45; color:#e8d9bd;}
+  #log b{color:#ffd27a;} #log .tell{color:#ffb347; font-style:italic;}
+  #controls{width:250px; background:var(--panel); border:1px solid var(--panel-line); border-radius:10px;
+    padding:8px 12px; font-size:13px; line-height:1.6; color:#cdb894;}
+  #controls b{color:var(--gold);}
+  button{font-family:Georgia,serif; background:linear-gradient(180deg,#e8a93c,#b97a17); color:#241407;
+    border:1px solid #6b4a1c; border-radius:8px; padding:8px 18px; font-size:16px; cursor:pointer; font-weight:bold;}
+  button:hover{filter:brightness(1.12);}
+  #helpOverlay,#endOverlay{position:fixed; inset:0; background:rgba(10,4,1,.78); display:none;
+    align-items:center; justify-content:center; z-index:10;}
+  #helpOverlay.open,#endOverlay.open{display:flex;}
+  .panelBox{width:620px; max-width:92vw; background:linear-gradient(180deg,#2a1608,#180c04);
+    border:1px solid var(--gold); border-radius:14px; padding:28px 34px; box-shadow:0 0 60px rgba(255,90,31,.35);}
+  .panelBox h2{color:var(--gold); font-size:26px; margin-bottom:12px; text-align:center;}
+  .panelBox p,.panelBox li{font-size:15.5px; line-height:1.55; color:#eadfc6;}
+  .panelBox ul{margin:8px 0 8px 20px;}
+  .panelBox .center{text-align:center; margin-top:18px;}
+  #endTitle{font-size:32px;}
+  #endScore{font-size:20px; text-align:center; margin:10px 0;}
+  .suitKey{display:flex; gap:14px; justify-content:center; margin-top:10px; font-size:13px;}
+  .suitKey span b{font-size:16px;}
+</style>
+</head>
+<body>
+<div id="table">
+  <header>
+    <h1>EMBER COURT<small>DUEL OF THE LAST FLAME</small></h1>
+    <div id="roundBadge">Round 1 / 7</div>
+  </header>
+  <div class="scores">
+    <div class="score" id="aiScore"><span class="name">👑 <b>Cinder Queen</b> <span class="streak" id="aiStreak"></span></span><span class="embers"><span id="aiEmbers">0</span> <small>embers</small></span></div>
+    <div class="score" id="playerScore"><span class="name">🔥 <b>You</b> <span class="streak" id="playerStreak"></span></span><span class="embers"><span id="playerEmbers">0</span> <small>embers</small></span></div>
+  </div>
+  <div id="aiHand"></div>
+  <div id="trickArea">
+    <div class="trickSlot"><div class="who">Cinder Queen</div><div id="aiTrick"></div></div>
+    <div class="trickSlot"><div class="who">You</div><div id="playerTrick"></div></div>
+  </div>
+  <div id="centerMsg">The court is lit.<br>Play a card to begin.</div>
+  <div id="playerHand"></div>
+  <div id="bottomBar">
+    <div id="log"></div>
+    <div id="controls">
+      <b>Click</b> a card to play &nbsp;·&nbsp; <b>1–0</b> select, <b>Enter</b> play<br>
+      <b>H</b> help &nbsp;·&nbsp; <b>R</b> restart match<br>
+      Ember is trump · Tide douses Ember
+    </div>
+  </div>
+</div>
+
+<div id="helpOverlay"><div class="panelBox">
+  <h2>How to Play — Ember Court</h2>
+  <p>A 40-card deck: four suits — <b>Ember 🔥, Tide 💧, Gale 🍃, Stone 🪨</b> — ranks 1–10. A match lasts <b>7 rounds</b> (tricks). You duel the <b>Cinder Queen</b>.</p>
+  <ul>
+    <li>The <b>leader</b> plays any card. The follower <b>must follow the led suit</b> if able.</li>
+    <li>Highest card of the led suit wins the trick — <b>except Ember is trump</b>: any Ember beats any non-Ember card.</li>
+    <li><b>Exception:</b> Tide douses Ember — a Tide card beats an Ember card when the two meet.</li>
+    <li>The trick winner scores <b>embers equal to the sum of both cards' ranks</b>, and leads the next round.</li>
+    <li><b>Kindle:</b> win 3 tricks in a row with the same suit and bank <b>+5 bonus embers</b>.</li>
+    <li><b>First to 21 embers</b>, or most embers after 7 rounds, wins the match.</li>
+  </ul>
+  <p><b>Read the Queen.</b> After every round a <i>Cinder Tell</i> reveals one of her habits — she leads high Tide early, hoards Ember for the late rounds, and dumps low Stone when a trick is lost. Learn it, and take her flame.</p>
+  <div class="suitKey"><span><b>🔥 Ember</b> trump</span><span><b>💧 Tide</b> douses Ember</span><span><b>🍃 Gale</b></span><span><b>🪨 Stone</b></span></div>
+  <div class="center"><button id="closeHelp">Return to the Court</button></div>
+</div></div>
+
+<div id="endOverlay"><div class="panelBox">
+  <h2 id="endTitle"></h2>
+  <div id="endScore"></div>
+  <p id="endText" style="text-align:center"></p>
+  <div class="center"><button id="rematchBtn">Rematch the Queen</button></div>
+</div></div>
+
+<script>
+"use strict";
+/* ============ Ember Court — game engine (shared rules with main.ts) ============ */
+const SUITS = ["Ember","Tide","Gale","Stone"];
+const SYMBOL = {Ember:"🔥", Tide:"💧", Gale:"🍃", Stone:"🪨"};
+const SUIT_CLASS = {Ember:"Ember", Tide:"Tide", Gale:"Gale", Stone:"Stone"};
+
+function mulberry32(seed){
+  let a = seed >>> 0;
+  return function(){
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function buildDeck(){
+  const d = [];
+  for (const s of SUITS) for (let r = 1; r <= 10; r++) d.push({suit:s, rank:r});
+  return d;
+}
+function shuffle(deck, rand){
+  const d = deck.slice();
+  for (let i = d.length - 1; i > 0; i--){
+    const j = Math.floor(rand() * (i + 1));
+    const t = d[i]; d[i] = d[j]; d[j] = t;
+  }
+  return d;
+}
+/* Trick winner: returns "leader" or "follower".
+   Ember is trump; Tide beats Ember when the two meet; else highest of led suit wins. */
+function trickWinner(lead, follow){
+  const leadEmber = lead.suit === "Ember", folEmber = follow.suit === "Ember";
+  const leadTide = lead.suit === "Tide", folTide = follow.suit === "Tide";
+  if ((leadEmber && folTide) || (leadTide && folEmber)) return "follower"; // Tide douses Ember
+  if (leadEmber && !folEmber) return "leader";
+  if (folEmber && !leadEmber) return "follower";
+  if (follow.suit === lead.suit) return follow.rank > lead.rank ? "follower" : "leader";
+  return "leader";
+}
+function legalPlays(hand, ledSuit){
+  if (!ledSuit) return hand.slice();
+  const follow = hand.filter(c => c.suit === ledSuit);
+  return follow.length ? follow : hand.slice();
+}
+
+/* ---- Cinder Queen AI: a learnable pattern ----
+   Leading: rounds 1-3 lead her highest Tide; rounds 5-7 lead her highest Ember;
+   otherwise lead her lowest Stone. Following: win cheaply if she can, else dump
+   her lowest Stone (or lowest card). She never leads Ember before round 5. */
+function aiChooseCard(hand, ledCard, round, isLeader){
+  const bySuit = s => hand.filter(c => c.suit === s);
+  const low = arr => arr.slice().sort((a,b)=>a.rank-b.rank)[0];
+  const high = arr => arr.slice().sort((a,b)=>b.rank-a.rank)[0];
+  if (isLeader){
+    if (round <= 3 && bySuit("Tide").length) return high(bySuit("Tide"));
+    if (round >= 5 && bySuit("Ember").length) return high(bySuit("Ember"));
+    if (bySuit("Stone").length) return low(bySuit("Stone"));
+    return low(hand);
+  }
+  const legal = legalPlays(hand, ledCard.suit);
+  const winning = legal.filter(c => trickWinner(ledCard, c) === "follower");
+  if (winning.length) return low(winning);            // win as cheaply as possible
+  if (bySuit("Stone").length) return low(bySuit("Stone")); // lost trick: dump low Stone
+  return low(legal);                                  // otherwise shed lowest legal card
+}
+
+const TELLS = [
+  "Cinder Tell — the Queen leads high Tide early; she spends her water before her fire.",
+  "Cinder Tell — she hoards Ember for the late rounds. Count her red cards.",
+  "Cinder Tell — when a trick is lost, she dumps her lowest Stone. Her weak cards go first.",
+  "Cinder Tell — she wins tricks as cheaply as she can; a small card that wins is her favourite.",
+  "Cinder Tell — she never leads Ember before round 5. Early Ember from her hand is a bluff she cannot make.",
+  "Cinder Tell — she follows suit when she can; if she plays off-suit, she has none of the led suit left.",
+  "Cinder Tell — her Tide is her shield against your Ember. Bait it out early, then burn late."
+];
+
+/* ================= state ================= */
+let state = null;
+let selectedIdx = -1;
+let busy = false;
+
+function newMatch(seed){
+  const rand = mulberry32(seed == null ? (Math.random()*0xffffffff)>>>0 : seed);
+  const deck = shuffle(buildDeck(), rand);
+  state = {
+    playerHand: deck.slice(0,7).sort((a,b)=>SUITS.indexOf(a.suit)-SUITS.indexOf(b.suit) || b.rank-a.rank),
+    aiHand: deck.slice(7,14),
+    round: 1, playerEmbers: 0, aiEmbers: 0,
+    leader: "player", trick: null, over: false,
+    playerStreak: 0, aiStreak: 0, streakSuit: null,
+    log: ["The court is lit. Seven rounds — the last flame decides it."],
+    tellIdx: 0
+  };
+  selectedIdx = -1; busy = false;
+  render();
+}
+
+function cardEl(card, opts){
+  opts = opts || {};
+  const el = document.createElement("div");
+  el.className = "card " + (opts.back ? "back" : SUIT_CLASS[card.suit]);
+  if (opts.back){ el.innerHTML = '<div class="suit">🔥</div>'; return el; }
+  el.innerHTML = '<div class="rank">'+card.rank+'</div><div class="suit">'+SYMBOL[card.suit]+'</div>' +
+    '<div class="corner">'+SYMBOL[card.suit]+'</div><div class="suitname">'+card.suit+'</div>';
+  return el;
+}
+function placeholderEl(txt){
+  const el = document.createElement("div");
+  el.className = "placeholder"; el.textContent = txt || "—";
+  return el;
+}
+
+function render(){
+  document.getElementById("roundBadge").textContent = state.over ? "Match over" : ("Round " + state.round + " / 7");
+  document.getElementById("playerEmbers").textContent = state.playerEmbers;
+  document.getElementById("aiEmbers").textContent = state.aiEmbers;
+  document.getElementById("playerStreak").textContent = state.playerStreak >= 2 ? ("🔥 x"+state.playerStreak) : "";
+  document.getElementById("aiStreak").textContent = state.aiStreak >= 2 ? ("🔥 x"+state.aiStreak) : "";
+  document.getElementById("playerScore").classList.toggle("leader", state.playerEmbers > state.aiEmbers);
+  document.getElementById("aiScore").classList.toggle("leader", state.aiEmbers > state.playerEmbers);
+
+  const aiHand = document.getElementById("aiHand"); aiHand.innerHTML = "";
+  state.aiHand.forEach(()=> aiHand.appendChild(cardEl(null, {back:true})));
+
+  const ph = document.getElementById("playerHand"); ph.innerHTML = "";
+  const ledSuit = state.trick && state.trick.lead.suit;
+  const legal = state.trick ? legalPlays(state.playerHand, ledSuit) : state.playerHand;
+  state.playerHand.forEach((c, i)=>{
+    const el = cardEl(c);
+    const ok = !state.over && !busy && (state.leader === "player" || state.trick) && legal.indexOf(c) >= 0;
+    if (i === selectedIdx) el.classList.add("selected");
+    if (!ok) el.classList.add("disabled");
+    el.addEventListener("click", ()=>{ if (ok){ selectedIdx = i; render(); playSelected(); } });
+    ph.appendChild(el);
+  });
+
+  const aiT = document.getElementById("aiTrick"), plT = document.getElementById("playerTrick");
+  aiT.innerHTML = ""; plT.innerHTML = "";
+  if (state.trick){
+    const t = state.trick;
+    const aiCard = t.leader === "ai" ? t.lead : t.follow;
+    const plCard = t.leader === "player" ? t.lead : t.follow;
+    if (aiCard){ const el = cardEl(aiCard); if (t.winner === "ai") el.classList.add("winner"); aiT.appendChild(el); }
+    else aiT.appendChild(placeholderEl("waiting"));
+    if (plCard){ const el = cardEl(plCard); if (t.winner === "player") el.classList.add("winner"); plT.appendChild(el); }
+    else plT.appendChild(placeholderEl("waiting"));
+  } else {
+    aiT.appendChild(placeholderEl("—")); plT.appendChild(placeholderEl("—"));
+  }
+
+  const log = document.getElementById("log");
+  log.innerHTML = state.log.slice(-4).map(l=>"<div>"+l+"</div>").join("");
+  log.scrollTop = log.scrollHeight;
+}
+
+function logLine(html){ state.log.push(html); if (state.log.length > 30) state.log.shift(); }
+
+function cardName(c){ return c.rank + " " + SYMBOL[c.suit] + " " + c.suit; }
+
+function resolveTrick(){
+  const t = state.trick;
+  const res = trickWinner(t.lead, t.follow);
+  const winner = res === "leader" ? t.leader : (t.leader === "player" ? "ai" : "player");
+  t.winner = winner;
+  const pts = t.lead.rank + t.follow.rank;
+  const winCard = winner === t.leader ? t.lead : t.follow;
+  let bonus = 0;
+  if (state.streakSuit === winCard.suit && ((winner === "player" && state.playerStreak === 2) || (winner === "ai" && state.aiStreak === 2))){
+    bonus = 5; // Kindle: third straight trick won with the same suit
+  }
+  if (winner === "player"){
+    state.playerStreak = (state.streakSuit === winCard.suit) ? state.playerStreak + 1 : 1;
+    state.aiStreak = 0; state.streakSuit = winCard.suit;
+    state.playerEmbers += pts + bonus;
+  } else {
+    state.aiStreak = (state.streakSuit === winCard.suit) ? state.aiStreak + 1 : 1;
+    state.playerStreak = 0; state.streakSuit = winCard.suit;
+    state.aiEmbers += pts + bonus;
+  }
+  const who = winner === "player" ? "<b>You</b>" : "<b>Cinder Queen</b>";
+  logLine(who + " take the trick — " + cardName(t.lead) + " vs " + cardName(t.follow) + " — <b>+" + pts + "</b> embers" + (bonus ? " + <b>Kindle +5!</b> 🔥" : ""));
+  const tell = TELLS[state.tellIdx % TELLS.length]; state.tellIdx++;
+  logLine('<span class="tell">'+tell+'</span>');
+  const msg = document.getElementById("centerMsg");
+  msg.innerHTML = '<span class="big">' + (winner === "player" ? "You take it!" : "The Queen takes it.") + '</span><br>+' + pts + ' embers' + (bonus ? ' · Kindle +5!' : '');
+  state.leader = winner;
+  render();
+  setTimeout(()=>{
+    state.trick = null;
+    state.round++;
+    busy = false;
+    document.getElementById("centerMsg").innerHTML = state.over ? "" :
+      (state.leader === "player" ? "Your lead — play any card." : "The Queen leads…");
+    if (state.round > 7 || state.playerEmbers >= 21 || state.aiEmbers >= 21) endMatch();
+    else { if (state.leader === "ai") aiLead(); render(); }
+  }, 1700);
+}
+
+function playCard(card, who){
+  if (who === "player"){
+    const i = state.playerHand.indexOf(card); if (i < 0) return;
+    state.playerHand.splice(i, 1);
+  } else {
+    const i = state.aiHand.indexOf(card); if (i < 0) return;
+    state.aiHand.splice(i, 1);
+  }
+  if (!state.trick){
+    state.trick = {leader: who, lead: card, follow: null, winner: null};
+    document.getElementById("centerMsg").innerHTML = who === "player" ? "You lead " + cardName(card) + "…" : "The Queen leads " + cardName(card) + "…";
+    render();
+    if (who === "player"){ busy = true; setTimeout(()=>{ aiFollow(); }, 900); }
+    else { busy = false; }
+  } else {
+    state.trick.follow = card;
+    render();
+    busy = true;
+    setTimeout(resolveTrick, 900);
+  }
+}
+
+function playSelected(){
+  if (selectedIdx < 0 || selectedIdx >= state.playerHand.length) return;
+  const card = state.playerHand[selectedIdx];
+  const ledSuit = state.trick && state.trick.lead.suit;
+  if (ledSuit && legalPlays(state.playerHand, ledSuit).indexOf(card) < 0){
+    logLine("You must follow <b>" + ledSuit + "</b> if you can."); render(); return;
+  }
+  selectedIdx = -1;
+  playCard(card, "player");
+}
+
+function aiLead(){
+  busy = true;
+  setTimeout(()=>{
+    const card = aiChooseCard(state.aiHand, null, state.round, true);
+    playCard(card, "ai");
+  }, 900);
+}
+function aiFollow(){
+  const card = aiChooseCard(state.aiHand, state.trick.lead, state.round, false);
+  playCard(card, "ai");
+}
+
+function endMatch(){
+  state.over = true; busy = true;
+  const you = state.playerEmbers, q = state.aiEmbers;
+  const win = you > q, draw = you === q;
+  document.getElementById("endTitle").textContent = win ? "🔥 The Flame Is Yours!" : (draw ? "A Draw — The Flame Endures" : "👑 The Cinder Queen Keeps Her Flame");
+  document.getElementById("endScore").innerHTML = "You <b>" + you + "</b> — <b>" + q + "</b> Cinder Queen &nbsp;·&nbsp; " + (state.round - 1) + " rounds";
+  document.getElementById("endText").textContent = win
+    ? "You read her tells, baited her Tide, and burned her Ember late. The court is yours — play again and keep the streak."
+    : (draw ? "Neither flame yields. One more duel will settle it."
+            : "She hoarded her Ember and spent it when it mattered. Watch the tells — lead high Tide early, save your Ember late — and take the rematch.");
+  logLine(win ? "<b>You win the match!</b> 🔥" : "<b>The Cinder Queen wins the match.</b>");
+  render();
+  document.getElementById("endOverlay").classList.add("open");
+}
+
+document.getElementById("closeHelp").addEventListener("click", ()=> document.getElementById("helpOverlay").classList.remove("open"));
+document.getElementById("rematchBtn").addEventListener("click", ()=>{ document.getElementById("endOverlay").classList.remove("open"); newMatch(); });
+document.addEventListener("keydown", e=>{
+  if (e.key === "h" || e.key === "H"){ document.getElementById("helpOverlay").classList.toggle("open"); return; }
+  if (e.key === "r" || e.key === "R"){ document.getElementById("endOverlay").classList.remove("open"); newMatch(); return; }
+  if (state.over || busy) return;
+  if (e.key >= "1" && e.key <= "9"){ const i = +e.key - 1; if (i < state.playerHand.length){ selectedIdx = i; render(); } }
+  else if (e.key === "0"){ const i = 9; if (i < state.playerHand.length){ selectedIdx = i; render(); } }
+  else if (e.key === "Enter"){ playSelected(); }
+});
+
+/* ---- demo autoplay for screenshots: ?demo=N plays N rounds, ?demo=end finishes the match ---- */
+function demoPlay(){
+  const q = new URLSearchParams(location.search);
+  const demo = q.get("demo");
+  if (!demo) return;
+  const target = demo === "end" ? 99 : parseInt(demo, 10);
+  const step = ()=>{
+    if (state.over || state.round > target) return;
+    if (busy){ setTimeout(step, 300); return; }
+    if (!state.trick && state.leader === "player"){
+      const card = state.playerHand.slice().sort((a,b)=>a.rank-b.rank)[0];
+      playCard(card, "player");
+    } else if (state.trick && state.trick.leader === "ai" && !state.trick.follow){
+      const legal = legalPlays(state.playerHand, state.trick.lead.suit);
+      const card = legal.slice().sort((a,b)=>a.rank-b.rank)[0];
+      playCard(card, "player");
+    }
+    setTimeout(step, 400);
+  };
+  setTimeout(step, 600);
+}
+
+newMatch(20261122);
+demoPlay();
+</script>
+</body>
+</html>
